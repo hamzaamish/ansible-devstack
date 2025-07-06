@@ -1,0 +1,38 @@
+- name: Launch a test Nova instance
+  hosts: openstack
+  become: true
+  become_user: stack
+
+  vars:
+    image_name: cirros
+    flavor_name: m1.nano
+    network_name: private-net1
+    key_name: mykey
+    instance_name: test-vm
+    image_file: /home/stack/cirros.img
+
+  tasks:
+    - name: Source OpenStack environment and launch instance
+      shell: |
+        . ~/devstack/openrc
+
+        echo "--- Upload image if not exists ---"
+        openstack image show {{ image_name }} || openstack image create {{ image_name }} \
+          --file {{ image_file }} \
+          --disk-format qcow2 --container-format bare --private
+
+        echo "--- Create flavor if not exists ---"
+        openstack flavor show {{ flavor_name }} || openstack flavor create \
+          --ram 64 --disk 1 --vcpus 1 {{ flavor_name }}
+
+        echo "--- Launch VM instance ---"
+        openstack server show {{ instance_name }} || openstack server create \
+          --image {{ image_name }} \
+          --flavor {{ flavor_name }} \
+          --network {{ network_name }} \
+          --key-name {{ key_name }} \
+          {{ instance_name }}
+
+      args:
+        executable: /bin/bash
+

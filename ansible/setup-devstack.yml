@@ -1,0 +1,55 @@
+- name: Setup DevStack on EC2
+  hosts: openstack
+  gather_facts: yes
+  become: true
+  become_user: stack
+
+  vars:
+    admin_password: admin
+    devstack_dir: /home/stack/devstack
+
+  tasks:
+    - name: Clone DevStack repo
+      git:
+        repo: https://opendev.org/openstack/devstack
+        dest: "{{ devstack_dir }}"
+        update: no
+
+    - name: Create local.conf file
+      copy:
+        dest: "{{ devstack_dir }}/local.conf"
+        content: |
+          [[local|localrc]]
+          ADMIN_PASSWORD={{ admin_password }}
+          DATABASE_PASSWORD={{ admin_password }}
+          RABBIT_PASSWORD={{ admin_password }}
+          SERVICE_PASSWORD={{ admin_password }}
+          HOST_IP=$(hostname -I | awk '{print $1}')
+
+          enable_service n-cpu
+          enable_service n-api
+          enable_service n-cond
+          enable_service n-sch
+          enable_service n-novnc
+          enable_service trove
+          enable_service trove-guest
+          enable_service swift
+          enable_service s-proxy
+          enable_service s-object
+          enable_service s-container
+          enable_service s-account
+
+    - name: Make stack.sh executable
+      file:
+        path: "{{ devstack_dir }}/stack.sh"
+        mode: '0755'
+
+    - name: Run DevStack (show output live)
+      ansible.builtin.shell: |
+        ./stack.sh
+      args:
+        chdir: "{{ devstack_dir }}"
+      register: stack_output
+      ignore_errors: true  # prevent failure if stack.sh fails — you still get output
+      no_log: false        # disable log hiding to see real-time stdout
+

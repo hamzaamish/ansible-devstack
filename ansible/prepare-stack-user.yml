@@ -1,0 +1,36 @@
+- name: Create 'stack' user for DevStack
+  hosts: openstack
+  become: true
+
+  tasks:
+    - name: Create 'stack' user
+      user:
+        name: stack
+        shell: /bin/bash
+        groups: sudo
+        append: yes
+
+    - name: Allow 'stack' user to run sudo without password
+      lineinfile:
+        path: /etc/sudoers.d/stack
+        line: "stack ALL=(ALL) NOPASSWD:ALL"
+        create: yes
+        mode: '0440'
+
+    - name: Create .ssh directory for stack user
+      file:
+        path: /home/stack/.ssh
+        state: directory
+        owner: stack
+        group: stack
+        mode: '0700'
+
+    - name: Copy SSH authorized_keys from ubuntu to stack
+      copy:
+        src: /home/ubuntu/.ssh/authorized_keys
+        dest: /home/stack/.ssh/authorized_keys
+        owner: stack
+        group: stack
+        mode: '0600'
+        remote_src: yes
+

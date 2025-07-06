@@ -1,0 +1,32 @@
+- name: Install DevStack Dependencies on EC2
+  hosts: openstack
+  become: true
+
+  tasks:
+    - name: Update APT and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install required packages
+      apt:
+        name:
+          - git
+          - python3-pip
+          - python3-dev
+          - build-essential
+          - libssl-dev
+          - libffi-dev
+          - libxml2-dev
+          - libxslt1-dev
+          - zlib1g-dev
+          - virtualenv
+          - libvirt-dev
+          - qemu-kvm
+          - bridge-utils
+          - libvirt-daemon-system
+          - libvirt-clients
+          - libguestfs-tools
+          - virtinst
+        state: present
+

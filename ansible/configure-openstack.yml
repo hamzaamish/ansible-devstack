@@ -1,0 +1,34 @@
+- name: Post-DevStack OpenStack Configuration (Safe & Idempotent)
+  hosts: openstack
+  become: true
+  become_user: stack
+
+  vars:
+    key_name: mykey
+    private_net: private-net1
+    private_subnet: private-subnet1
+    router_name: router-dev1
+    subnet_range: 192.168.20.0/24
+
+  tasks:
+    - name: Source OpenStack environment and configure
+      shell: |
+        . ~/devstack/openrc
+
+        openstack keypair show {{ key_name }} || openstack keypair create {{ key_name }} > ~/{{ key_name }}.pem
+        chmod 600 ~/{{ key_name }}.pem
+
+        openstack network show {{ private_net }} || openstack network create {{ private_net }}
+
+        openstack subnet show {{ private_subnet }} || openstack subnet create {{ private_subnet }} \
+          --network {{ private_net }} --subnet-range {{ subnet_range }}
+
+        openstack router show {{ router_name }} || openstack router create {{ router_name }}
+
+        openstack router add subnet {{ router_name }} {{ private_subnet }} || true
+
+        openstack security group rule create --protocol tcp --dst-port 22 default || true
+        openstack security group rule create --protocol icmp default || true
+      args:
+        executable: /bin/bash
+
