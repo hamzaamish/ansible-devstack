@@ -1,0 +1,28 @@
+# ansible/trove-setup.yml
+
+- name: Enable Trove in DevStack
+  hosts: all
+  become: true
+  gather_facts: false 
+
+  vars:
+    trove_plugins:
+      - "enable_plugin trove https://opendev.org/openstack/trove"
+      - "enable_plugin trove-dashboard https://opendev.org/openstack/trove-dashboard"
+      - "TROVE_DATASTORE_TYPE=mysql"
+
+  tasks:
+    - name: Ensure local.conf exists
+      become_user: stack
+      file:
+        path: /home/stack/devstack/local.conf
+        state: touch
+
+    - name: Add Trove plugin lines to local.conf
+      become_user: stack
+      lineinfile:
+        path: /home/stack/devstack/local.conf
+        line: "{{ item }}"
+        insertafter: EOF
+      loop: "{{ trove_plugins }}"
+

@@ -1,0 +1,61 @@
+# ansible/trove-database-launch.yml
+
+- name: Configure Trove datastore and launch MySQL instance
+  hosts: all
+  become: true
+  gather_facts: false 
+  tasks:
+
+    - name: Download MySQL guest image
+      become_user: stack
+      get_url:
+        url: https://tarballs.opendev.org/openstack/trove/images/ubuntu-bionic-mysql.qcow2
+        dest: /home/stack/trove-mysql.qcow2
+        mode: '0644'
+
+    - name: Upload image to Glance
+      become_user: stack
+      shell: |
+        source ~/devstack/openrc
+        openstack image create trove-guest-image \
+          --file /home/stack/trove-mysql.qcow2 \
+          --disk-format qcow2 \
+          --container-format bare \
+          --public || true
+
+    - name: Register 'mysql' datastore
+      become_user: stack
+      shell: |
+        source ~/devstack/openrc
+        openstack datastore show mysql || openstack datastore create mysql
+      ignore_errors: true
+
+    - name: Register mysql-5.7 version
+      become_user: stack
+      shell: |
+        source ~/devstack/openrc
+        IMAGE_ID=$(openstack image show trove-guest-image -f value -c id)
+        openstack datastore version show mysql-5.7 --datastore mysql || \
+        openstack datastore version create \
+          --datastore mysql \
+          --version 5.7 \
+          --image-id $IMAGE_ID \
+          --packages '' \
+          mysql-5.7
+      ignore_errors: true
+
+    - name: Launch MySQL instance
+      become_user: stack
+      shell: |
+        source ~/devstack/openrc
+        NET_ID=$(openstack network list -f value -c ID --name private-net1)
+        openstack database instance show db1 || \
+        openstack database instance create db1 \
+          --flavor m1.nano \
+          --size 1 \
+          --datastore mysql \
+          --datastore-version 5.7 \
+          --nic net-id=$NET_ID \
+          --volume-type lvmdriver-1
+      ignore_errors: true
+
