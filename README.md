@@ -142,6 +142,9 @@ ansible-playbook -i inventory.ini trove-database-launch.yml
 | Trove issues | Ensure MySQL guest image is uploaded, datastore registered correctly |
 | Horizon login fails | Use `admin`/`admin` or check Keystone roles |
 | CLI auth errors | Source the correct `openrc` file as `stack` user |
+sudo su - stack 
+source ~/devstack/openrc admin
+use these commands
 
 ---
 
